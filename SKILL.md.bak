@@ -1,0 +1,220 @@
+---
+name: astrbot-plugin-dev
+description: |
+  AstrBot 插件开发、配置管理和服务器运维的完整指南。
+  
+  使用场景：
+  1. 开发 AstrBot 插件时需要了解插件架构、事件系统、API 用法
+  2. 修改 AstrBot 配置时需要使用 Dashboard API 或管理插件/技能/MCP
+  3. 远程管理 AstrBot 服务器时需要查看插件、技能、MCP 配置状态
+  4. 调试插件、配置 MCP 服务器、管理技能启用状态
+  
+  适用于所有 AstrBot 相关的开发和运维任务。
+---
+
+# AstrBot 插件开发技能
+
+## 环境变量配置
+
+在使用本技能前，请根据实际部署情况设置以下变量：
+
+```bash
+# AstrBot 部署目录（根据实际情况修改）
+ASTRBOT_DIR="/opt/astrbot"  # 示例：Docker 部署常用路径
+# 其他常见路径：
+# - ~/AstrBot  （本地部署）
+# - /home/user/astrbot  （自定义路径）
+```
+
+**重要提示：** 文档中所有 `${ASTRBOT_DIR}` 需要替换为实际路径。
+
+---
+
+  3. 远程管理 AstrBot 服务器时需要查看插件、技能、MCP 配置状态
+  4. 调试插件、配置 MCP 服务器、管理技能启用状态
+  
+  适用于所有 AstrBot 相关的开发和运维任务。
+---
+
+
+**使用场景：**
+
+1. **插件开发** - 开发 AstrBot 插件时需要：
+   - 了解插件架构和事件系统
+   - 查询 AstrBot API 用法（消息发送、事件监听、会话控制等）
+   - 开发新插件或调试现有插件
+   - 遵循开发规范和最佳实践
+
+2. **修改 AstrBot 配置** - 需要程序化修改配置时需要：
+   - 通过 Dashboard API 获取/修改配置
+   - 管理插件（安装、卸载、重载）
+   - 配置 MCP 服务器和技能管理
+   - 远程管理 AstrBot 实例
+
+3. **服务器管理** - 查看和管理服务器上的插件、技能、MCP 配置
+
+**重要原则：**
+- 必须先查阅官方文档（本技能 references/ 目录）
+- 严禁在没有查阅文档的情况下进行开发
+- 遵循 AstrBot 开发规范
+
+## 快速开始
+
+### 1. 获取插件模板
+
+```bash
+# 使用 GitHub 模板创建新仓库
+# https://github.com/Soulter/helloworld
+# 点击 "Use this template" -> "Create new repository"
+# 插件名格式：astrbot_plugin_<name>（小写，无空格）
+```
+
+### 2. 克隆到本地
+
+```bash
+git clone https://github.com/AstrBotDevs/AstrBot
+mkdir -p AstrBot/data/plugins
+cd AstrBot/data/plugins
+git clone <你的插件仓库地址>
+```
+
+### 3. 最小插件示例
+
+```python
+from astrbot.api.event import filter, AstrMessageEvent
+from astrbot.api.star import Context, Star
+from astrbot.api import logger
+
+class MyPlugin(Star):
+    def __init__(self, context: Context):
+        super().__init__(context)
+
+    @filter.command("hello")
+    async def hello(self, event: AstrMessageEvent):
+        '''Hello World 指令'''
+        user_name = event.get_sender_name()
+        yield event.plain_result(f"Hello, {user_name}!")
+```
+
+
+### 4. 调试和测试
+
+**插件调试：** 详见 [debugging.md](./debugging.md)
+
+**TDD 测试：** 详见 [tdd-testing.md](./tdd-testing.md)
+
+## 开发规范
+
+- **功能测试**：所有功能必须经过测试
+- **数据存储**：持久化数据存储在 `data/` 目录，不要存在插件目录
+- **错误处理**：良好的异常处理，不要让插件崩溃
+- **代码格式**：使用 [ruff](https://docs.astral.sh/ruff/) 格式化代码
+- **异步网络**：使用 `aiohttp`/`httpx`，不要用 `requests`
+- **日志记录**：使用 `from astrbot.api import logger`
+- **插件命名**：`astrbot_plugin_<name>`（小写，无空格）
+
+## 服务器管理
+
+### 配置文件位置
+
+**已安装插件目录：**
+- 路径：`${ASTRBOT_DIR}/data/plugins/`
+- 说明：每个插件一个子目录，目录名为 `astrbot_plugin_<name>`
+
+**已安装技能目录：**
+- 路径：`${ASTRBOT_DIR}/data/skills/`
+- 说明：每个技能一个子目录
+
+**MCP 服务器配置文件：**
+- 路径：`${ASTRBOT_DIR}/data/mcp_server.json`
+- 说明：包含所有 MCP 服务器的配置
+
+**主配置文件：**
+- 路径：`${ASTRBOT_DIR}/data/cmd_config.json`
+- 说明：包含 Dashboard 登录凭证、LLM 配置等
+
+### MCP 服务器配置
+
+MCP 配置文件位于：`${ASTRBOT_DIR}/data/mcp_server.json`
+
+**配置格式：**
+```json
+{
+    "mcpServers": {
+        "server_name": {
+            "active": true,
+            "transport": "streamable_http",
+            "url": "https://example.com",
+            "headers": {
+                "Authorization": "Bearer YOUR_TOKEN"
+            },
+            "timeout": 5,
+            "sse_read_timeout": 300
+        }
+    }
+}
+```
+
+**字段说明：**
+- `active`: 是否启用该 MCP 服务器
+- `transport`: 传输方式（streamable_http / stdio）
+- `url`: MCP 服务器地址
+- `headers`: HTTP 请求头（可选）
+- `timeout`: 连接超时时间（秒）
+- `sse_read_timeout`: SSE 读取超时时间（秒）
+
+### 目录结构
+
+```
+${ASTRBOT_DIR}/data/
+├── plugins/          # 插件目录
+├── skills/           # 技能目录
+├── mcp_server.json   # MCP 服务器配置
+└── config.yaml       # 主配置文件
+```
+
+## 官方文档地址
+
+- **GitHub 文档**: https://github.com/AstrBotDevs/AstrBot/tree/master/docs
+- **DeepWiki**: https://deepwiki.com/AstrBotDevs/AstrBot
+
+## 参考文档
+
+本技能所有文档位于 `references/` 目录：
+
+### 快速参考
+
+| 文档 | 说明 |
+|------|------|
+| `plugin-development-guide.md` | 插件开发完整指南（推荐） |
+| `astrbot-config-reference.md` | AstrBot 配置文件参考 |
+| `astrbot-plugin-skill-mcp-guide.md` | 插件/技能/MCP 管理指南 |
+
+### Dashboard API 文档（`dashboard_api/` 目录）
+
+| 文档 | 说明 |
+|------|------|
+| `dashboard_api/dashboard_interfaces_and_config_formats.md` | Dashboard API 接口定义和配置格式 |
+| `dashboard_api/dashboard_communication_summary.md` | Dashboard 通信机制和接口汇总 |
+
+### 官方开发文档（`dev/` 目录）
+
+| 路径 | 说明 |
+|------|------|
+| `dev/star/plugin-new.md` | 新版插件开发指南（官方） |
+| `dev/star/guides/simple.md` | 最小插件示例 |
+| `dev/star/guides/ai.md` | AI 相关功能 |
+| `dev/star/guides/send-message.md` | 发送消息 |
+| `dev/star/guides/listen-message-event.md` | 监听消息事件 |
+| `dev/star/guides/session-control.md` | 会话控制 |
+| `dev/star/guides/html-to-pic.md` | 文转图 |
+| `dev/star/guides/plugin-config.md` | 插件配置 |
+| `dev/star/guides/storage.md` | 数据存储 |
+| `dev/star/guides/env.md` | 环境变量 |
+| `dev/star/plugin-publish.md` | 插件发布 |
+| `dev/plugin-platform-adapter.md` | 平台适配器开发 |
+| `dev/astrbot-config.md` | AstrBot 配置说明 |
+| `dev/openapi.md` | OpenAPI 接口 |
+
+**开发前必读官方文档！**
+
