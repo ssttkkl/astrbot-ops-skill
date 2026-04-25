@@ -9,7 +9,10 @@ AstrBot 插件测试脚本
    - 查找 dashboard_username 和 dashboard_password
    - 密码已经是 MD5 哈希值，直接使用
 """
-import json, sys, requests, time, hashlib
+
+import json
+import sys
+import requests
 
 API_BASE = "http://127.0.0.1:6185/api"
 
@@ -65,7 +68,7 @@ if __name__ == '__main__':
     username = sys.argv[2]
     password_md5 = sys.argv[3]
     token = login(username, password_md5)
-    print(f"✓ 登录成功，获取 token")
+    print("✓ 登录成功，获取 token")
     
     # 运行测试
     with open(sys.argv[1]) as f:
@@ -76,5 +79,5 @@ if __name__ == '__main__':
     with open('test-results.json', 'w') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     
-    print(f"✓ 测试完成，结果保存到 test-results.json")
+    print("✓ 测试完成，结果保存到 test-results.json")
 
